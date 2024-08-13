@@ -7,23 +7,26 @@ import io
 
 app = FastAPI()
 
-# Load your saved model
-model = models.resnet18(weights=None)
-model.fc = torch.nn.Linear(model.fc.in_features, 2)  # Assuming 2 classes
-model.load_state_dict(torch.load("model.pth"))
-model.eval()
+model = None
+def load_model():
+    global model
+    model = models.resnet18(weights=None)
+    model.fc = torch.nn.Linear(model.fc.in_features, 2)
+    model.load_state_dict(torch.load("telemedecine.pth", map_location=torch.device("cpu")))
+    model.eval()
+    return model
 
-# Define the transformation pipeline
+app.add_event_handler("startup", load_model)
+
+# transformation
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-# Define the class names
 class_names = ['COVID', 'nonCOVID']
 
-# Inference function
 def predict(image_bytes):
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     image = transform(image).unsqueeze(0)
