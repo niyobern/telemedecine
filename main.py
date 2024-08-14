@@ -12,7 +12,14 @@ def load_model():
     global model
     model = models.resnet18(weights=None)
     model.fc = torch.nn.Linear(model.fc.in_features, 2)
-    model.load_state_dict(torch.load("telemedecine.pth", map_location=torch.device("cpu")))
+    
+    loaded_obj = torch.load("telemedecine.pth", map_location=torch.device("cpu"))
+    
+    if isinstance(loaded_obj, torch.nn.Module):
+        model = loaded_obj
+    else:
+        model.load_state_dict(loaded_obj)
+    
     model.eval()
     return model
 
@@ -37,6 +44,11 @@ def predict(image_bytes):
         predicted_class = class_names[predicted.item()]
     
     return predicted_class
+
+
+@app.get("/")
+async def index():
+    return JSONResponse(content={"message": "Hello, World!"})
 
 @app.post("/predict/")
 async def predict_image(file: UploadFile = File(...)):
